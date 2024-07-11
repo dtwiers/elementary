@@ -16,36 +16,21 @@ defmodule Elementary do
     :world
   end
 
+  @enforce_keys [:name]
+  defstruct [:name, epilog: nil, description: nil, options: [], subcommands: []]
+
   def command(name, opts \\ []) do
     %{
       name: name,
-      epilog: Keyword.get(opts, :epilog, ""),
-      description: Keyword.get(opts, :description, ""),
+      epilog: Keyword.get(opts, :epilog, nil),
+      description: Keyword.get(opts, :description, nil),
       options: [],
       subcommands: []
     }
   end
 
-  def add_option(command, name, description, opts \\ []) do
-    # TODO: create struct for this thing so I can default the element_opts to the struct
-    defaults = [
-      type: :string,
-      short: "",
-      long: "",
-      default: nil,
-      required: false,
-      choices: [],
-      element_type: String,
-      element_opts: [],
-      delimiter: :space
-    ]
-
-    option = %{
-      name: name,
-      description: description,
-    }
-    |> Map.merge(Map.new((defaults ++ opts)))
-
+  def add_option(command, name, description, type, opts \\ []) do
+    option = Elementary.Option.new(name, description, type, opts)
     %{command | options: command.options ++ [option]}
   end
 
@@ -54,41 +39,48 @@ defmodule Elementary do
   end
 
   def parse(command, args) do
-    args =
-      args
-      |> split_shorthand_options()
-      |> Enum.map(&handle_equals_option/1)
+    args = normalize_args(args)
 
-    args
-    |> Enum.reduce([], fn arg, acc ->
-      if is_option?(arg) and Enum.member?(command.options, arg) do
-      end
-    end)
+    parse_normalized(command, args, %{})
+  end
+
+  defp parse_normalized(command, args, state) do
+    command_name = command.name
+    result = args
   end
 
   defp is_option?(arg) do
     !String.starts_with?(arg, "-")
   end
 
-  defp split_shorthand_options(args) do
-    Enum.flat_map(args, fn arg ->
-      cond do
-        String.starts_with?(arg, "--") ->
-          [arg]
-
-        String.starts_with?(arg, "-") ->
-          String.graphemes(arg) |> Enum.drop(1) |> Enum.map(&("-" <> &1))
-
-        true ->
-          [arg]
-      end
-    end)
+  defp normalize_args(args) do
+    args
+    |> Stream.flat_map(&split_shorthand_options(&1))
+    |> Stream.flat_map(&handle_equals_option(&1))
   end
 
-  defp handle_equals_option("--" <> arg) do
-    [opt, value] = String.split(arg, "=", parts: 2)
-    ["--" <> opt, value]
+  def split_shorthand_options(arg) do
+    cond do
+      String.starts_with?(arg, "--") ->
+        [arg]
+
+      String.starts_with?(arg, "-") ->
+        String.graphemes(arg) |> Enum.drop(1) |> Enum.map(&("-" <> &1))
+
+      true ->
+        [arg]
+    end
   end
+
+  def handle_equals_option("--" <> arg) do
+    with [opt, value] <- String.split(arg, "=", parts: 2) do
+      ["--" <> opt, value]
+    else
+      _ -> ["--" <> arg]
+    end
+  end
+
+  def handle_equals_option(arg), do: [arg]
 
   def foo do
     command =

@@ -41,8 +41,8 @@ end
 
 defimpl Elementary.FromArg, for: List do
   def from_arg(:list, args, opt) do
-    delimiter = Map.get(opts, :delimiter, ",")
-    element_type = Map.get(opts, :element_type, String)
+    delimiter = Map.get(opt, :delimiter, ",")
+    element_type = Map.get(opt, :element_type, String)
 
     case delimiter do
       :space ->
@@ -52,7 +52,7 @@ defimpl Elementary.FromArg, for: List do
             &Elementary.FromArg.from_arg(
               element_type,
               [&1],
-              opts |> Map.get(:element_opts, %{})
+              opt |> Map.get(:element_opts, %{})
             )
           )
 
@@ -65,7 +65,7 @@ defimpl Elementary.FromArg, for: List do
             &Elementary.FromArg.from_arg(
               element_type,
               [&1],
-              opts |> Map.get(:element_opts, [])
+              opt |> Map.get(:element_opts, [])
             )
           )
 
