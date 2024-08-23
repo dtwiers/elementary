@@ -7,7 +7,8 @@ defmodule Elementary.MixProject do
       version: "0.1.0",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      escript: [main_module: Elementary.ExampleCLI, name: "elementary_cli", embed: false, strip_beams: true],
     ]
   end
 
@@ -21,7 +22,7 @@ defmodule Elementary.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:propcheck, "~> 1.4", only: [:test, :dev]}
+      {:stream_data, "~>1.0", only: [:test]},
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]

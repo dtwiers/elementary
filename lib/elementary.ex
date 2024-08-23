@@ -3,6 +3,8 @@ defmodule Elementary do
   Documentation for `Elementary`.
   """
 
+  alias Elementary.Result
+
   @doc """
   Hello world.
 
@@ -38,6 +40,7 @@ defmodule Elementary do
     %{command | subcommands: command.subcommands ++ [subcommand]}
   end
 
+
   def parse(command, args) do
     args = normalize_args(args)
 
@@ -46,10 +49,11 @@ defmodule Elementary do
 
   defp parse_normalized(command, args, state) do
     command_name = command.name
-    result = args
+    _result = args
+    %Result{name: command_name, options: state, subcommand: nil}
   end
 
-  defp is_option?(arg) do
+  defp is_option(arg) do
     !String.starts_with?(arg, "-")
   end
 
@@ -85,13 +89,14 @@ defmodule Elementary do
   def foo do
     command =
       Elementary.command("foo", epilog: "foo", description: "foo")
-      |> Elementary.add_option(:bar, "bar", type: :string, short: "-b", long: "--bar")
+      |> Elementary.add_option(:bar, "bar description", :string, short: "-b", long: "--bar")
       |> Elementary.add_subcommand(
         Elementary.command(name: "baz", epilog: "baz", description: "baz")
-        |> Elementary.add_option(:qux, "qux", type: :string, short: "-q", long: "--qux")
+        |> Elementary.add_option(:qux, "qux", :string, short: "-q", long: "--qux")
       )
 
     command
     |> Elementary.parse(["foo", "--bar", "baz", "--qux", "quux"])
+    # {:ok, %{name: "foo", options: %{bar: "baz", qux: "quux"}, subcommand: nil}, []}
   end
 end
