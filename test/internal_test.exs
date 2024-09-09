@@ -1,7 +1,7 @@
 defmodule Elementary.InternalTest do
   use ExUnit.Case
   alias Elementary.Internal
-  import Elementary, only: [command: 1, add_subcommand: 2]
+  import Elementary, only: [command: 1, command: 2, add_subcommand: 2]
 
   describe "parse_naive" do
     test "basic naive parse" do
@@ -9,13 +9,6 @@ defmodule Elementary.InternalTest do
       args = ["--foo", "--bar", "baz"]
       result = Internal.parse_naive(command, args)
       assert result == [{"--foo", true}, {"--bar", "baz"}]
-    end
-
-    test "error parsing" do
-      command = command(name: "foo")
-      args = ["foo"]
-      result = Internal.parse_naive(command, args)
-      assert result == {:error, "unrecognized command: foo"}
     end
 
     test "subcommands" do
@@ -49,6 +42,22 @@ defmodule Elementary.InternalTest do
       args = ["bar", "baz", "--bar", "foo", "blah"]
       result = Internal.parse_naive(command, args)
       assert result == [{:cmd, "bar", [{:cmd, "baz", [{"--bar", "foo"}, {"--bar", "blah"}]}]}]
+    end
+
+    test "positionals" do
+      command = command("foo", opts: [positionals: [%{name: :bar, min_appears: 2}]])
+
+      args = ["foo", "bar"]
+      result = Internal.parse_naive(command, args)
+      assert result == [{:pos, "foo"}, {:pos, "bar"}]
+    end
+
+    test "not enough positionals" do
+      command = command("foo", opts: [positionals: [%{name: :bar, min_appears: 2}]])
+
+      args = ["foo"]
+      result = Internal.parse_naive(command, args)
+      assert result == [pos: "foo"]
     end
   end
 end
