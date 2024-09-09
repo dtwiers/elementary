@@ -24,3 +24,5 @@ elementary-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+./elementary_cli

@@ -6,7 +6,7 @@ defmodule Elementary do
   alias Elementary.Result
 
   @enforce_keys [:name]
-  defstruct [:name, epilog: nil, description: nil, options: [], subcommands: []]
+  defstruct [:name, epilog: nil, description: nil, options: [], subcommands: [], opts: []]
 
   def command(name, opts \\ []) do
     %{
@@ -14,7 +14,8 @@ defmodule Elementary do
       epilog: Keyword.get(opts, :epilog, nil),
       description: Keyword.get(opts, :description, nil),
       options: [],
-      subcommands: []
+      subcommands: [],
+      opts: Keyword.get(opts, :opts, [])
     }
   end
 
@@ -31,46 +32,7 @@ defmodule Elementary do
   def parse(command, args) do
     args = normalize_args(args)
 
-    parse_normalized(command, args)
-  end
-
-  defp parse_normalized(command, args) do
-    args
-    |> Stream.with_index()
-    |> Stream.chunk_while(nil, fn {elem, index}, last_arg ->
-      cond do
-        is_option(elem) ->
-          cond do
-            last_arg == nil ->
-              {:cont, elem}
-            is_tuple(last_arg) ->
-              {:cont, elem}
-            true ->
-              {:cont, [{last_arg, true}], elem}
-          end
-        true ->
-          cond do
-            elem in command.subcommands ->
-              command = Enum.find(command.subcommands, &(&1.name == elem))
-              {:halt, {:cmd, elem, parse_normalized(command, Enum.drop(args, index))}}
-            last_arg == nil -> {:halt, {:error, "unrecognized command: #{elem}"}}
-            is_tuple(last_arg) ->
-              {:cont, [{last_arg, elem}], {last_arg, elem}}
-            true ->
-              {:cont, {last_arg, elem}, last_arg}
-          end
-      end
-    end,
-    fn
-      {:error, msg} -> {:cont, [{:error, msg}], nil}
-      {:cmd, cmd, cmd_args} when is_list(cmd_args) -> {:cont, [{cmd, cmd_args}], nil}
-      last_arg when is_binary(last_arg) -> {:cont, [{last_arg, true}], nil}
-      _ -> {:cont, nil}
-    end)
-  end
-
-  defp is_option(arg) do
-    String.starts_with?(arg, "-")
+    Elementary.Internal.parse_naive(command, args)
   end
 
   defp normalize_args(args) do
