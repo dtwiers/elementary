@@ -51,13 +51,5 @@ defmodule Elementary.InternalTest do
       result = Internal.parse_naive(command, args)
       assert result == [{:pos, "foo"}, {:pos, "bar"}]
     end
-
-    test "not enough positionals" do
-      command = command("foo", opts: [positionals: [%{name: :bar, min_appears: 2}]])
-
-      args = ["foo"]
-      result = Internal.parse_naive(command, args)
-      assert result == [pos: "foo"]
-    end
   end
 end

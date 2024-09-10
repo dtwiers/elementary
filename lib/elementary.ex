@@ -3,8 +3,6 @@ defmodule Elementary do
   Documentation for `Elementary`.
   """
 
-  alias Elementary.Result
-
   @enforce_keys [:name]
   defstruct [:name, epilog: nil, description: nil, options: [], subcommands: [], opts: []]
 
@@ -28,7 +26,6 @@ defmodule Elementary do
     %{command | subcommands: command.subcommands ++ [subcommand]}
   end
 
-
   def parse(command, args) do
     args = normalize_args(args)
 
@@ -47,7 +44,16 @@ defmodule Elementary do
         [arg]
 
       String.starts_with?(arg, "-") ->
-        String.graphemes(arg) |> Enum.drop(1) |> Enum.map(&("-" <> &1))
+        split_flags = String.graphemes(arg)
+        |> Enum.drop(1)
+        |> Enum.map(&("-" <> &1))
+        case Enum.find_index(split_flags, &(&1 == "=")) do
+          nil -> split_flags
+          index ->
+            flags = Enum.slice(split_flags, 0, index)
+            value = Enum.drop(split_flags, index + 1) |> Enum.join()
+            flags ++ [value]
+        end
 
       true ->
         [arg]
@@ -75,6 +81,7 @@ defmodule Elementary do
 
     command
     |> Elementary.parse(["foo", "--bar", "baz", "--qux", "quux"])
+
     # {:ok, %{name: "foo", options: %{bar: "baz", qux: "quux"}, subcommand: nil}, []}
   end
 end

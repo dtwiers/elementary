@@ -129,7 +129,7 @@ defmodule Elementary.Option do
     end
   end
 
-  defp matches?(option, arg) do
+  def matches?(option, arg) do
     aliases =
       if option.aliases == [] do
         ["--" <> option.name]
@@ -140,14 +140,14 @@ defmodule Elementary.Option do
     Enum.member?(aliases, arg)
   end
 
-  defp parse_string(option, args) do
+  defp parse_string(_option, args) do
     case Enum.at(args, 0) do
       nil -> {:error, "missing string", args}
       arg -> {:ok, arg, Enum.drop(args, 1)}
     end
   end
 
-  defp parse_boolean(option, args) do
+  defp parse_boolean(_option, args) do
     case String.downcase(Enum.at(args, 0)) do
       "true" -> {:ok, true, Enum.drop(args, 1)}
       "false" -> {:ok, false, Enum.drop(args, 1)}
@@ -155,7 +155,7 @@ defmodule Elementary.Option do
     end
   end
 
-  defp parse_list(option, args, element_type, delimiter, element_option) do
+  defp parse_list(_option, args, _element_type, delimiter, element_option) do
     case delimiter do
       :space ->
         elems =
@@ -173,7 +173,7 @@ defmodule Elementary.Option do
     end
   end
 
-  defp parse_atom(option, args, choices) do
+  defp parse_atom(_option, args, choices) do
     case Enum.at(args, 0) do
       nil ->
         {:error, "missing atom", args}
