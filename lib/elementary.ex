@@ -3,8 +3,7 @@ defmodule Elementary do
   Documentation for `Elementary`.
   """
 
-  @enforce_keys [:name]
-  defstruct [:name, epilog: nil, description: nil, options: [], subcommands: [], opts: []]
+  alias Elementary.Internal
 
   def command(name, opts \\ []) do
     %{
@@ -17,8 +16,7 @@ defmodule Elementary do
     }
   end
 
-  def add_option(command, name, description, type, opts \\ []) do
-    option = Elementary.Option.new(name, description, type, opts)
+  def add_option(command, option) do
     %{command | options: command.options ++ [option]}
   end
 
@@ -27,61 +25,116 @@ defmodule Elementary do
   end
 
   def parse(command, args) do
-    args = normalize_args(args)
+    args = Internal.normalize_args(args)
 
-    Elementary.Internal.parse_naive(command, args)
+    Internal.parse_naive(command, args)
   end
 
-  defp normalize_args(args) do
-    args
-    |> Stream.flat_map(&split_shorthand_options(&1))
-    |> Stream.flat_map(&handle_equals_option(&1))
+  def float_option(name, opts \\ []) do
+    %{
+      name: name,
+      type: :float,
+      min: Keyword.get(opts, :min, nil),
+      max: Keyword.get(opts, :max, nil),
+      validation: Keyword.get(opts, :validation, nil),
+      min_appears: Keyword.get(opts, :min_appears, 0),
+      max_appears: Keyword.get(opts, :max_appears, 1),
+      default: Keyword.get(opts, :default, nil),
+      aliases: Keyword.get(opts, :aliases, []),
+      description: Keyword.get(opts, :description, nil),
+      epilog: Keyword.get(opts, :epilog, nil),
+      opts: Keyword.get(opts, :opts, [])
+    }
   end
 
-  def split_shorthand_options(arg) do
-    cond do
-      String.starts_with?(arg, "--") ->
-        [arg]
-
-      String.starts_with?(arg, "-") ->
-        split_flags = String.graphemes(arg)
-        |> Enum.drop(1)
-        |> Enum.map(&("-" <> &1))
-        case Enum.find_index(split_flags, &(&1 == "=")) do
-          nil -> split_flags
-          index ->
-            flags = Enum.slice(split_flags, 0, index)
-            value = Enum.drop(split_flags, index + 1) |> Enum.join()
-            flags ++ [value]
-        end
-
-      true ->
-        [arg]
-    end
+  def integer_option(name, opts \\ []) do
+    %{
+      name: name,
+      type: :integer,
+      min: Keyword.get(opts, :min, nil),
+      max: Keyword.get(opts, :max, nil),
+      validation: Keyword.get(opts, :validation, nil),
+      min_appears: Keyword.get(opts, :min_appears, 0),
+      max_appears: Keyword.get(opts, :max_appears, 1),
+      default: Keyword.get(opts, :default, nil),
+      aliases: Keyword.get(opts, :aliases, []),
+      description: Keyword.get(opts, :description, nil),
+      epilog: Keyword.get(opts, :epilog, nil),
+      opts: Keyword.get(opts, :opts, [])
+    }
   end
 
-  def handle_equals_option("--" <> arg) do
-    with [opt, value] <- String.split(arg, "=", parts: 2) do
-      ["--" <> opt, value]
-    else
-      _ -> ["--" <> arg]
-    end
+  def string_option(name, opts \\ []) do
+    %{
+      name: name,
+      type:
+        case Keyword.get(opts, :choices, nil) do
+          nil -> :string
+          choices -> {:string, choices}
+        end,
+      min_appears: Keyword.get(opts, :min_appears, 0),
+      max_appears: Keyword.get(opts, :max_appears, 1),
+      default: Keyword.get(opts, :default, nil),
+      aliases: Keyword.get(opts, :aliases, []),
+      description: Keyword.get(opts, :description, nil),
+      epilog: Keyword.get(opts, :epilog, nil),
+      opts: Keyword.get(opts, :opts, [])
+    }
   end
 
-  def handle_equals_option(arg), do: [arg]
+  def boolean_option(name, opts \\ []) do
+    %{
+      name: name,
+      type: :boolean,
+      min_appears: Keyword.get(opts, :min_appears, 0),
+      max_appears: Keyword.get(opts, :max_appears, 1),
+      default: Keyword.get(opts, :default, nil),
+      aliases: Keyword.get(opts, :aliases, []),
+      description: Keyword.get(opts, :description, nil),
+      epilog: Keyword.get(opts, :epilog, nil),
+      opts: Keyword.get(opts, :opts, [])
+    }
+  end
 
-  def foo do
-    command =
-      Elementary.command("foo", epilog: "foo", description: "foo")
-      |> Elementary.add_option(:bar, "bar description", :string, short: "-b", long: "--bar")
-      |> Elementary.add_subcommand(
-        Elementary.command(name: "baz", epilog: "baz", description: "baz")
-        |> Elementary.add_option(:qux, "qux", :string, short: "-q", long: "--qux")
-      )
+  def atom_option(name, opts \\ []) do
+    %{
+      name: name,
+      type: {:atom, Keyword.get(opts, :choices, [])},
+      min_appears: Keyword.get(opts, :min_appears, 0),
+      max_appears: Keyword.get(opts, :max_appears, 1),
+      default: Keyword.get(opts, :default, nil),
+      aliases: Keyword.get(opts, :aliases, []),
+      description: Keyword.get(opts, :description, nil),
+      epilog: Keyword.get(opts, :epilog, nil),
+      opts: Keyword.get(opts, :opts, [])
+    }
+  end
 
-    command
-    |> Elementary.parse(["foo", "--bar", "baz", "--qux", "quux"])
+  def path_option(name, opts \\ []) do
+    %{
+      name: name,
+      type: :path,
+      min_appears: Keyword.get(opts, :min_appears, 0),
+      max_appears: Keyword.get(opts, :max_appears, 1),
+      default: Keyword.get(opts, :default, nil),
+      aliases: Keyword.get(opts, :aliases, []),
+      description: Keyword.get(opts, :description, nil),
+      epilog: Keyword.get(opts, :epilog, nil),
+      opts: Keyword.get(opts, :opts, [])
+    }
+  end
 
-    # {:ok, %{name: "foo", options: %{bar: "baz", qux: "quux"}, subcommand: nil}, []}
+  def custom_option(name, parser, opts \\ []) do
+    %{
+      name: name,
+      type: parser,
+      min_appears: Keyword.get(opts, :min_appears, 0),
+      max_appears: Keyword.get(opts, :max_appears, 1),
+      default: Keyword.get(opts, :default, nil),
+      aliases: Keyword.get(opts, :aliases, []),
+      description: Keyword.get(opts, :description, nil),
+      epilog: Keyword.get(opts, :epilog, nil),
+      opts: Keyword.get(opts, :opts, [])
+    }
   end
 end
